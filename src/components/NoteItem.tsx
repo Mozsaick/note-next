@@ -57,6 +57,9 @@ const NoteItem: React.FC<NoteItemProps> = ({
             return;
         }
         onUpdateNote(note.id, newTitle, note.content || '');
+        setIsRenaming(false);
+        setShowContextMenu(false);
+        setNewTitle(newTitle);
     };
 
     const handleRenameKeyDown = (e: React.KeyboardEvent) => {

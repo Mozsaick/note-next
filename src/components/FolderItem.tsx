@@ -79,6 +79,9 @@ const FolderItem: React.FC<FolderItemProps> = ({
         }
 
         onUpdateFolder(folder.id, newFolderName);
+        setIsRenamingFolder(false);
+        setShowFolderContextMenu(false);
+        setNewFolderName(newFolderName);
     };
 
     const handleDeleteFolder = async (e: React.MouseEvent) => {
