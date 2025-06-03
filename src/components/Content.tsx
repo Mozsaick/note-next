@@ -29,7 +29,7 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
         const previousNoteId = noteId;
         const previousNoteTitle = noteTitle;
         const previousNoteContent = noteContent;
-
+        
         if (!note) {
             setNoteId('');
             setNoteTitle('');
@@ -38,20 +38,20 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
             setError(null);
             return;
         }
-
-        if (previousNoteId !== note.id) {
-            setNoteId(note.id);
-            setNoteTitle(note.title || 'Untitled Note');
-            setNoteContent(note.content ?? '');
-            setIsLoading(false);
-            setError(null);
-
-            if (!previousNoteId) return;
-
+        
+        setNoteId(note.id);
+        setNoteTitle(note.title || 'Untitled Note');
+        setNoteContent(note.content ?? '');
+        setIsLoading(false);
+        setError(null);
+        
+        if (previousNoteId && previousNoteId !== note.id) {
             onUpdateNote(previousNoteId, previousNoteTitle, previousNoteContent);
-            return;
         }
+    }, [note]); 
 
+    useEffect(() => {
+        if (!note) return;
         const hasTitleChanged = noteTitle !== (note.title || 'Untitled Note');
         const hasContentChanged = noteContent !== (note.content ?? '');
 
@@ -80,7 +80,7 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
                 clearTimeout(debounceTimeoutRef.current);
             }
         };
-    }, [note, noteTitle, noteContent, isLoading, onUpdateNote]);
+    }, [noteTitle, noteContent, isLoading]);
 
     const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setNoteTitle(e.target.value);
