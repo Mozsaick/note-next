@@ -11,11 +11,12 @@ interface ContentProps {
     onUpdateNote: (noteId: string, title: string, content: string) => void;
 }
 
-const SAVE_DEBOUNCE_DELAY = 1500; // 1.5 seconds
+const SAVE_DEBOUNCE_DELAY = 1000; // 1 second
 
 type ViewMode = 'edit' | 'preview';
 
 const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
+    const [noteId, setNoteId] = useState('');
     const [noteTitle, setNoteTitle] = useState('');
     const [noteContent, setNoteContent] = useState('');
     const [isLoading, setIsLoading] = useState(true);
@@ -25,24 +26,29 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
-        if (note) {
-            setNoteTitle(note.title || 'Untitled Note');
-            setNoteContent(note.content ?? '');
-            setIsLoading(false);
-            setError(null);
-        } else {
+        const previousNoteId = noteId;
+        const previousNoteTitle = noteTitle;
+        const previousNoteContent = noteContent;
+
+        if (!note) {
+            setNoteId('');
             setNoteTitle('');
             setNoteContent('');
             setIsLoading(true);
             setError(null);
+            return;
         }
-        if (debounceTimeoutRef.current) {
-            clearTimeout(debounceTimeoutRef.current);
-        }
-    }, [note]);
 
-    useEffect(() => {
-        if (!note || isLoading) {
+        if (previousNoteId !== note.id) {
+            setNoteId(note.id);
+            setNoteTitle(note.title || 'Untitled Note');
+            setNoteContent(note.content ?? '');
+            setIsLoading(false);
+            setError(null);
+
+            if (!previousNoteId) return;
+
+            onUpdateNote(previousNoteId, previousNoteTitle, previousNoteContent);
             return;
         }
 
@@ -74,7 +80,7 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
                 clearTimeout(debounceTimeoutRef.current);
             }
         };
-    }, [noteTitle, noteContent, note, isLoading, onUpdateNote]);
+    }, [note, noteTitle, noteContent, isLoading, onUpdateNote]);
 
     const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setNoteTitle(e.target.value);
