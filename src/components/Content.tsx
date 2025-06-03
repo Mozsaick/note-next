@@ -30,9 +30,9 @@ const Content: React.FC<ContentProps> = ({ selectedNoteId, onNoteSelect }) => {
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
-        if (debounceTimeoutRef.current) {
-            clearTimeout(debounceTimeoutRef.current);
-        }
+        // if (debounceTimeoutRef.current) {
+            // clearTimeout(debounceTimeoutRef.current);
+        // }
         setSaveStatus('idle');
         setViewMode('edit');
 
@@ -114,29 +114,28 @@ const Content: React.FC<ContentProps> = ({ selectedNoteId, onNoteSelect }) => {
 
         setSaveStatus('idle'); // Reset to idle if user continues typing
 
+        const noteIdToSave = selectedNoteId;
+
         debounceTimeoutRef.current = setTimeout(async () => {
-            if (!selectedNoteId) return; // Check again, in case it changed during timeout
-
-            // Double check for changes right before saving
-            const currentFetchedTitle = fetchedTitleRef.current;
-            const currentFetchedContent = fetchedContentRef.current;
-            const titleChangedForSave = noteTitle !== currentFetchedTitle;
-            const contentChangedForSave = noteContent !== currentFetchedContent;
-
-            if (!titleChangedForSave && !contentChangedForSave) {
+            if (!noteIdToSave) { 
                 setSaveStatus('idle');
-                return; // No actual changes to save
+                return;
             }
 
             setSaveStatus('saving');
             setError(null);
 
             const payload: { title?: string; content?: string } = {};
-            if (titleChangedForSave) payload.title = noteTitle;
-            if (contentChangedForSave) payload.content = noteContent;
+            if (noteTitle !== fetchedTitleRef.current) payload.title = noteTitle;
+            if (noteContent !== fetchedContentRef.current) payload.content = noteContent;
+
+            if (Object.keys(payload).length === 0) {
+                setSaveStatus('idle');
+                return; // No actual changes to save
+            }
 
             try {
-                const response = await fetch(`/api/notes/${selectedNoteId}`, {
+                const response = await fetch(`/api/notes/${noteIdToSave}`, { // Use noteIdToSave
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
@@ -145,23 +144,31 @@ const Content: React.FC<ContentProps> = ({ selectedNoteId, onNoteSelect }) => {
                     const errText = await response.text();
                     throw new Error(errText || 'Failed to save note');
                 }
-                const updatedNote: Note = await response.json(); // Get the saved note
-                // Update fetched refs to current saved state
-                fetchedTitleRef.current = updatedNote.title || 'Untitled Note';
-                fetchedContentRef.current = updatedNote.content ?? '';
-                // Optionally update state if API returns slightly different values (e.g. trimmed)
-                setNoteTitle(updatedNote.title || 'Untitled Note');
-                setNoteContent(updatedNote.content ?? '');
-                setSaveStatus('saved');
-                setTimeout(() => setSaveStatus('idle'), 2000); // Revert to idle after a bit
+                const updatedNote: Note = await response.json();
+                
+                if (selectedNoteId === noteIdToSave) {
+                    fetchedTitleRef.current = updatedNote.title || 'Untitled Note';
+                    fetchedContentRef.current = updatedNote.content ?? '';
+                    setNoteTitle(updatedNote.title || 'Untitled Note');
+                    setNoteContent(updatedNote.content ?? '');
+                    setSaveStatus('saved');
+                    setTimeout(() => setSaveStatus('idle'), 2000);
+                } else {
+                    setSaveStatus('idle');
+                }
             } catch (err: any) {
                 console.error('Error saving note:', err);
-                setError(err.message);
-                setSaveStatus('error');
+                if (selectedNoteId === noteIdToSave) {
+                    setError(err.message);
+                    setSaveStatus('error');
+                } else {
+                    console.error(`Error saving note ${noteIdToSave} in background:`, err.message);
+                    setSaveStatus('idle');
+                }
             }
         }, SAVE_DEBOUNCE_DELAY);
 
-    }, [noteTitle, noteContent, selectedNoteId, isLoading]);
+    }, [noteTitle, noteContent]);
 
     const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setNoteTitle(e.target.value);
