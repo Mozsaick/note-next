@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Folder, Note } from '@/types';
 import { ChevronRight, ChevronDown, MoreHorizontal, Edit3, Trash2, Plus } from 'lucide-react';
 import NoteItem from './NoteItem'; // Import NoteItem
+import LoadingSpinner from './LoadingSpinner'; // Import spinner
 
 interface FolderItemProps {
     folder: Folder;
@@ -22,6 +23,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
 }) => {
     const [notes, setNotes] = useState<Note[]>([]);
     const [isOpen, setIsOpen] = useState(false);
+    const [isLoadingNotes, setIsLoadingNotes] = useState(false);
     // Folder renaming
     const [isRenamingFolder, setIsRenamingFolder] = useState(false);
     const [newFolderName, setNewFolderName] = useState(folder.name);
@@ -30,6 +32,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
     const folderNameInputRef = useRef<HTMLInputElement>(null);
 
     const fetchNotes = async () => {
+        setIsLoadingNotes(true);
         try {
             const response = await fetch(`/api/notes?folder_id=${folder.id}`);
             if (!response.ok) throw new Error('Failed to fetch notes for folder');
@@ -38,14 +41,19 @@ const FolderItem: React.FC<FolderItemProps> = ({
         } catch (err: any) {
             console.error(`Error fetching notes for folder ${folder.id}:`, err);
             setNotes([]);
+        } finally {
+            setIsLoadingNotes(false);
         }
     };
 
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && !notes.length && !isLoadingNotes) { // Fetch only if open and notes aren't loaded
             fetchNotes();
+        } else if (!isOpen) {
+            // Optionally clear notes when closed to save memory, or keep them cached
+            // setNotes([]); 
         }
-    }, [folder.id, isOpen]);
+    }, [folder.id, isOpen]); // Removed notes.length and isLoadingNotes from deps to avoid loops/re-fetches on setNotes
 
     useEffect(() => {
         if (isRenamingFolder && folderNameInputRef.current) {
@@ -93,6 +101,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
     // Folder Actions
     const handleStartRenameFolder = (e: React.MouseEvent) => {
         e.stopPropagation();
+        setNewFolderName(folder.name); // Reset to current name before editing
         setIsRenamingFolder(true);
         setShowFolderContextMenu(false);
     };
@@ -100,7 +109,6 @@ const FolderItem: React.FC<FolderItemProps> = ({
     const handleRenameFolder = async () => {
         if (!newFolderName.trim() || newFolderName === folder.name) {
             setIsRenamingFolder(false);
-            setNewFolderName(folder.name);
             return;
         }
         try {
@@ -114,7 +122,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
             onFolderUpdate(); // Notify sidebar to refresh all folders
         } catch (error) {
             console.error('Error renaming folder:', error);
-            setNewFolderName(folder.name); 
+            setNewFolderName(folder.name);
             setIsRenamingFolder(false);
         }
     };
@@ -172,7 +180,11 @@ const FolderItem: React.FC<FolderItemProps> = ({
                     )}
                 </button>
                 <div className="flex items-center ml-auto flex-shrink-0">
-                    {!isRenamingFolder && notes.length > 0 && <span className="text-xs text-gray-400 pr-1">{notes.length}</span>}
+                    {isLoadingNotes ? (
+                        <LoadingSpinner size={16} color="#9CA3AF" /> // Smaller spinner for notes list
+                    ) : !isRenamingFolder && notes.length > 0 ? (
+                        <span className="text-xs text-gray-400 pr-1">{notes.length}</span>
+                    ) : null}
                     {!isRenamingFolder && 
                         <button onClick={(e) => { e.stopPropagation(); handleCreateNewNote(); }}
                             className="p-0.5 rounded opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-gray-600"
@@ -212,7 +224,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
                             onNoteRenamed={handleNoteListUpdate} // For re-fetching notes in this folder
                         />
                     ))}
-                    {notes.length === 0 && (
+                    {!isLoadingNotes && notes.length === 0 && (
                          <li className="px-2 py-1 text-xs text-gray-500 italic">No notes in this folder.</li>
                     )}
                 </ul>

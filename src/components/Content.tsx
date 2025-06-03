@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Note } from '@/types';
+import LoadingSpinner from './LoadingSpinner';
 
 interface ContentProps {
     selectedNoteId: string;
@@ -24,30 +25,38 @@ const Content: React.FC<ContentProps> = ({ selectedNoteId, onNoteSelect }) => {
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
+        // Clear pending save and reset save status when note changes or unmounts
+        if (debounceTimeoutRef.current) {
+            clearTimeout(debounceTimeoutRef.current);
+        }
+        setSaveStatus('idle');
+
         const fetchNote = async () => {
             if (selectedNoteId) {
                 setIsLoading(true);
                 setError(null);
-                setSaveStatus('idle');
                 try {
                     const response = await fetch(`/api/notes/${selectedNoteId}`);
                     if (!response.ok) {
                         const errText = await response.text();
-                        setNoteTitle('Note not found');
+                        setNoteTitle(''); // Clear title on not found
                         setNoteContent('');
                         fetchedTitleRef.current = null;
                         fetchedContentRef.current = null;
-                        throw new Error(errText || 'Failed to fetch note');
+                        setError(errText || 'Note not found');
+                        throw new Error(errText || 'Note not found');
                     }
                     const data: Note = await response.json();
-                    setNoteTitle(data.title || 'Untitled Note');
-                    setNoteContent(data.content ?? '');
-                    fetchedTitleRef.current = data.title || 'Untitled Note';
-                    fetchedContentRef.current = data.content ?? '';
+                    const title = data.title || 'Untitled Note';
+                    const content = data.content ?? '';
+                    setNoteTitle(title);
+                    setNoteContent(content);
+                    fetchedTitleRef.current = title;
+                    fetchedContentRef.current = content;
                 } catch (err: any) {
                     console.error('Error fetching note:', err);
-                    setError(err.message);
-                    setNoteTitle('Error loading note');
+                    setError(err.message || 'Error loading note');
+                    setNoteTitle(''); // Clear title on error
                     setNoteContent('');
                     fetchedTitleRef.current = null;
                     fetchedContentRef.current = null;
@@ -58,17 +67,14 @@ const Content: React.FC<ContentProps> = ({ selectedNoteId, onNoteSelect }) => {
                 setNoteTitle('');
                 setNoteContent('');
                 setError(null);
-                setSaveStatus('idle');
                 fetchedTitleRef.current = null;
                 fetchedContentRef.current = null;
                 setIsLoading(false);
             }
         };
+
         fetchNote();
-        // Clear any pending save when note changes
-        if (debounceTimeoutRef.current) {
-            clearTimeout(debounceTimeoutRef.current);
-        }
+
         return () => {
             if (debounceTimeoutRef.current) {
                 clearTimeout(debounceTimeoutRef.current);
@@ -131,9 +137,13 @@ const Content: React.FC<ContentProps> = ({ selectedNoteId, onNoteSelect }) => {
                     const errText = await response.text();
                     throw new Error(errText || 'Failed to save note');
                 }
+                const updatedNote: Note = await response.json(); // Get the saved note
                 // Update fetched refs to current saved state
-                fetchedTitleRef.current = noteTitle;
-                fetchedContentRef.current = noteContent;
+                fetchedTitleRef.current = updatedNote.title || 'Untitled Note';
+                fetchedContentRef.current = updatedNote.content ?? '';
+                // Optionally update state if API returns slightly different values (e.g. trimmed)
+                setNoteTitle(updatedNote.title || 'Untitled Note');
+                setNoteContent(updatedNote.content ?? '');
                 setSaveStatus('saved');
                 setTimeout(() => setSaveStatus('idle'), 2000); // Revert to idle after a bit
             } catch (err: any) {
@@ -143,53 +153,61 @@ const Content: React.FC<ContentProps> = ({ selectedNoteId, onNoteSelect }) => {
             }
         }, SAVE_DEBOUNCE_DELAY);
 
-    }, [noteTitle, noteContent, selectedNoteId, isLoading]); // Add isLoading here
+    }, [noteTitle, noteContent, selectedNoteId, isLoading]);
 
     const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setNoteTitle(e.target.value);
-        // setSaveStatus('idle'); // Handled by useEffect now
     };
 
     const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setNoteContent(e.target.value);
-        // setSaveStatus('idle'); // Handled by useEffect now
     };
 
     let statusMessage = '';
-    if (saveStatus === 'saving') statusMessage = 'Saving...';
-    else if (saveStatus === 'saved') statusMessage = 'Saved!';
-    else if (saveStatus === 'error') statusMessage = `Error: ${error || 'Could not save'}`;
+    // if (isLoading && selectedNoteId) statusMessage = 'Loading note...'; // Prioritize loading message
+    // else if (saveStatus === 'saving') statusMessage = 'Saving...';
+    // else if (saveStatus === 'saved') statusMessage = 'Saved!';
+    // else if (saveStatus === 'error') statusMessage = `Error: ${error || 'Could not save'}`;
+    // else if (error && !isLoading) statusMessage = `Error: ${error}` // Show general fetch error
+    if (saveStatus === 'error') statusMessage = `Error: ${error || 'Could not save'}`;
+    
+    if (!selectedNoteId && !isLoading) { //isLoading check for initial app load case
+        return (
+            <div className="flex items-center justify-center h-full p-4 bg-gray-850 text-white">
+                <p className="text-gray-500 text-lg">Select a note to view or edit.</p>
+            </div>
+        );
+    }
+    
+    if (isLoading && selectedNoteId) {
+         return (
+            <div className="flex flex-col items-center justify-center h-full p-4 bg-gray-850 text-white">
+                <LoadingSpinner size={32} />
+                <p className="text-gray-500 text-lg mt-4">Loading note...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col h-full p-4 bg-gray-850 text-white">
-            {selectedNoteId ? (
-                <>
-                    <input 
-                        type="text"
-                        value={noteTitle}
-                        onChange={handleTitleChange}
-                        placeholder="Note Title"
-                        className="text-xl font-bold mb-1 p-2 bg-transparent border-b border-gray-700 focus:outline-none focus:border-blue-500 flex-shrink-0"
-                        disabled={isLoading}
-                    />
-                    <div className="text-xs text-gray-500 mb-2 h-4 pl-2">
-                        {statusMessage}
-                    </div>
-                    <textarea
-                        value={noteContent}
-                        onChange={handleContentChange}
-                        placeholder="Start typing your note here..."
-                        className="w-full flex-grow p-2 bg-gray-800 border border-gray-700 rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        disabled={isLoading}
-                    />
-                </>
-            ) : (
-                <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-500 text-lg">
-                        {isLoading ? 'Loading note...' : 'Select a note to view or edit.'}
-                    </p>
-                </div>
-            )}
+            <input 
+                type="text"
+                value={noteTitle}
+                onChange={handleTitleChange}
+                placeholder="Note Title"
+                className="text-xl font-bold mb-1 p-2 bg-transparent border-b border-gray-700 focus:outline-none focus:border-blue-500 flex-shrink-0"
+                disabled={isLoading || saveStatus === 'saving'}
+            />
+            <div className="text-xs text-gray-500 mb-2 h-4 pl-2">
+                {statusMessage}
+            </div>
+            <textarea
+                value={noteContent}
+                onChange={handleContentChange}
+                placeholder="Start typing your note here..."
+                className="w-full flex-grow p-2 bg-gray-800 border border-gray-700 rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
+                disabled={isLoading || saveStatus === 'saving'}
+            />
         </div>
     )
 };
