@@ -30,51 +30,53 @@ const Content: React.FC<ContentProps> = ({ selectedNoteId, onNoteSelect }) => {
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
-        // Clear pending save and reset save status when note changes or unmounts
         if (debounceTimeoutRef.current) {
             clearTimeout(debounceTimeoutRef.current);
         }
         setSaveStatus('idle');
-        setViewMode('edit'); // Default to edit mode when note changes
+        setViewMode('edit');
 
         const fetchNote = async () => {
-            if (selectedNoteId) {
-                setIsLoading(true);
-                setError(null);
-                try {
-                    const response = await fetch(`/api/notes/${selectedNoteId}`);
-                    if (!response.ok) {
-                        const errText = await response.text();
-                        setNoteTitle(''); // Clear title on not found
-                        setNoteContent('');
-                        fetchedTitleRef.current = null;
-                        fetchedContentRef.current = null;
-                        setError(errText || 'Note not found');
-                        throw new Error(errText || 'Note not found');
-                    }
-                    const data: Note = await response.json();
-                    const title = data.title || 'Untitled Note';
-                    const content = data.content ?? '';
-                    setNoteTitle(title);
-                    setNoteContent(content);
-                    fetchedTitleRef.current = title;
-                    fetchedContentRef.current = content;
-                } catch (err: any) {
-                    console.error('Error fetching note:', err);
-                    setError(err.message || 'Error loading note');
-                    setNoteTitle(''); // Clear title on error
-                    setNoteContent('');
-                    fetchedTitleRef.current = null;
-                    fetchedContentRef.current = null;
-                } finally {
-                    setIsLoading(false);
-                }
-            } else {
+            if (!selectedNoteId) {
                 setNoteTitle('');
                 setNoteContent('');
                 setError(null);
                 fetchedTitleRef.current = null;
                 fetchedContentRef.current = null;
+                setIsLoading(false);
+                return;
+            }
+
+            setIsLoading(true);
+            setError(null);
+            
+            try {
+                const response = await fetch(`/api/notes/${selectedNoteId}`);
+                if (!response.ok) {
+                    const errText = await response.text();
+                    setNoteTitle('');
+                    setNoteContent('');
+                    fetchedTitleRef.current = null;
+                    fetchedContentRef.current = null;
+                    setError(errText || 'Note not found');
+                    return; // Exit after handling error, finally will run
+                }
+
+                const data: Note = await response.json();
+                const title = data.title || 'Untitled Note';
+                const content = data.content ?? '';
+                setNoteTitle(title);
+                setNoteContent(content);
+                fetchedTitleRef.current = title;
+                fetchedContentRef.current = content;
+            } catch (err: any) {
+                console.error('Error fetching note:', err);
+                setError(err.message || 'Error loading note');
+                setNoteTitle('');
+                setNoteContent('');
+                fetchedTitleRef.current = null;
+                fetchedContentRef.current = null;
+            } finally {
                 setIsLoading(false);
             }
         };
