@@ -4,21 +4,12 @@ import type { Note, NotePostBody } from '../../../types';
 
 /**
  * ノート一覧を取得 (GET /api/notes)
- * folder_id クエリパラメータでフィルタリングすることを想定
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const folderId = searchParams.get('folder_id');
-
-    if (!folderId) {
-      return NextResponse.json({ error: 'folder_id query parameter is required' }, { status: 400 });
-    }
-
     const { data, error, status } = await supabase
       .from('notes')
       .select('*')
-      .eq('folder_id', folderId)
       .order('created_at', { ascending: false });
 
     if (error && status !== 406) {

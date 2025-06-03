@@ -6,20 +6,18 @@ import { MoreHorizontal, Edit3, Trash2 } from 'lucide-react';
 
 interface NoteItemProps {
     note: Note;
-    isSelected: boolean;
-    folderId: string;
-    onSelect: (noteId: string, folderId: string) => void;
-    onNoteDeleted: () => void; // Callback when a note is deleted to refresh list in FolderItem
-    onNoteRenamed: () => void; // Callback when a note is renamed to refresh list in FolderItem
+    selectedNoteId: string;
+    onSelectNote: (noteId: string, folderId: string) => void;
+    onUpdateNote: (folderId: string, title: string, content: string) => void;
+    onDeleteNote: (noteId: string) => void;
 }
 
 const NoteItem: React.FC<NoteItemProps> = ({ 
-    note, 
-    isSelected, 
-    folderId,
-    onSelect, 
-    onNoteDeleted,
-    onNoteRenamed
+    note,
+    selectedNoteId,
+    onSelectNote,
+    onUpdateNote,
+    onDeleteNote
 }) => {
     const [isRenaming, setIsRenaming] = useState(false);
     const [newTitle, setNewTitle] = useState(note.title || 'Untitled Note');
@@ -58,19 +56,7 @@ const NoteItem: React.FC<NoteItemProps> = ({
             setIsRenaming(false);
             return;
         }
-        try {
-            const response = await fetch(`/api/notes/${note.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title: newTitle }),
-            });
-            if (!response.ok) throw new Error('Failed to rename note');
-            setIsRenaming(false);
-            onNoteRenamed(); // Notify FolderItem to refresh notes
-        } catch (error) {
-            console.error('Error renaming note:', error);
-            setIsRenaming(false); 
-        }
+        onUpdateNote(note.id, newTitle, note.content || '');
     };
 
     const handleRenameKeyDown = (e: React.KeyboardEvent) => {
@@ -84,14 +70,7 @@ const NoteItem: React.FC<NoteItemProps> = ({
     const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation();
         if (window.confirm(`Are you sure you want to delete note "${note.title || 'Untitled Note'}"?`)) {
-            try {
-                const response = await fetch(`/api/notes/${note.id}`, { method: 'DELETE' });
-                if (!response.ok) throw new Error('Failed to delete note');
-                setShowContextMenu(false);
-                onNoteDeleted(); // Notify FolderItem to refresh notes
-            } catch (error) {
-                console.error('Error deleting note:', error);
-            }
+            onDeleteNote(note.id);
         }
     };
 
@@ -102,13 +81,13 @@ const NoteItem: React.FC<NoteItemProps> = ({
 
     const handleSelectNote = () => {
         if (!isRenaming) {
-            onSelect(note.id, folderId);
+            onSelectNote(note.id, note.folder_id);
         }
     };
 
     return (
         <li className="group relative text-sm">
-            <div className={`flex items-center justify-between p-1 rounded hover:bg-gray-600 ${isSelected ? 'bg-gray-600' : ''}`}>
+            <div className={`flex items-center justify-between p-1 rounded hover:bg-gray-600 ${selectedNoteId === note.id ? 'bg-gray-600' : ''}`}>
                 {isRenaming ? (
                     <input 
                         ref={inputRef}
@@ -124,7 +103,7 @@ const NoteItem: React.FC<NoteItemProps> = ({
                     <span 
                         onClick={handleSelectNote}
                         className={`text-gray-300 hover:text-white cursor-pointer truncate flex-grow ${
-                            isSelected ? 'text-blue-400 font-semibold' : ''
+                            selectedNoteId === note.id ? 'text-blue-400 font-semibold' : ''
                         }`}
                         title={note.title || 'Untitled Note'}
                     >

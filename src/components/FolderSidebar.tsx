@@ -1,75 +1,50 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Folder } from '@/types';
+import { Folder, Note } from '@/types';
 import { Plus } from 'lucide-react';
 import FolderItem from './FolderItem';
 
 interface FolderSidebarProps {
+    folders: Folder[];
+    notes: Note[];
     selectedNoteId: string;
-    onNoteSelect: (noteId: string, folderId: string) => void;
-    onNoteUpdate: (folderId: string) => void;
+    onCreateFolder: (name: string) => void;
+    onCreateNote: (title: string, content: string) => void;
+    onUpdateFolder: (folderId: string, name: string) => void;
+    onDeleteFolder: (folderId: string) => void;
+    onSelectNote: (noteId: string, folderId: string) => void;
+    onUpdateNote: (folderId: string, title: string, content: string) => void;
+    onDeleteNote: (noteId: string) => void;
 }
 
 const FolderSidebar: React.FC<FolderSidebarProps> = ({ 
+    folders,
+    notes,
     selectedNoteId,
-    onNoteSelect,
-    onNoteUpdate
+    onCreateFolder,
+    onCreateNote,
+    onUpdateFolder,
+    onDeleteFolder,
+    onSelectNote,
+    onUpdateNote,
+    onDeleteNote
 }) => {
-    const [folders, setFolders] = useState<Folder[]>([]);
     const [isCreating, setIsCreating] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
 
-    const fetchFolders = async () => {
-        try {
-            const response = await fetch('/api/folders');
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `Failed to fetch folders: ${response.statusText}`);
-            }
-            const data: Folder[] = await response.json();
-            setFolders(data);
-        } catch (err: any) {
-            setFolders([]);
-        }
-    };
-
-    const createFolder = async () => {
-        if (!newFolderName.trim()) return;
-        
-        try {
-            const response = await fetch('/api/folders', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ name: newFolderName }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to create folder');
-            }
-
-            await fetchFolders();
-            setNewFolderName('');
-            setIsCreating(false);
-        } catch (error) {
-            console.error('Error creating folder:', error);
-        }
-    };
-
     const handleKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
-            createFolder();
+            if (newFolderName.trim()) {
+                onCreateFolder(newFolderName.trim());
+                setNewFolderName('');
+                setIsCreating(false);
+            }
         } else if (e.key === 'Escape') {
             setIsCreating(false);
             setNewFolderName('');
         }
     };
-
-    useEffect(() => {
-        fetchFolders();
-    }, []);
 
     return (
         <div className="w-64 p-4 bg-gray-800 text-white rounded-lg shadow-lg h-full overflow-y-auto">
@@ -102,9 +77,13 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
                         key={folder.id}
                         folder={folder}
                         selectedNoteId={selectedNoteId}
-                        onNoteSelect={onNoteSelect}
-                        onFolderUpdate={fetchFolders}
-                        onNoteUpdateInFolder={onNoteUpdate}
+                        notes={notes.filter((note) => note.folder_id === folder.id)}
+                        onSelectNote={onSelectNote}
+                        onUpdateFolder={onUpdateFolder}
+                        onDeleteFolder={onDeleteFolder}
+                        onCreateNote={onCreateNote}
+                        onUpdateNote={onUpdateNote}
+                        onDeleteNote={onDeleteNote}
                     />
                 ))}
             </ul>

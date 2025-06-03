@@ -8,20 +8,27 @@ import LoadingSpinner from './LoadingSpinner'; // Import spinner
 
 interface FolderItemProps {
     folder: Folder;
+    notes: Note[];
     selectedNoteId: string;
-    onNoteSelect: (noteId: string, folderId: string) => void;
-    onFolderUpdate: () => void;
-    onNoteUpdateInFolder: (folderId: string) => void; // Renamed for clarity, FolderItem handles its notes directly
+    onUpdateFolder: (folderId: string, name: string) => void;
+    onDeleteFolder: (folderId: string) => void;
+    onSelectNote: (noteId: string, folderId: string) => void;
+    onCreateNote: (title: string, content: string) => void;
+    onUpdateNote: (folderId: string, title: string, content: string) => void;
+    onDeleteNote: (noteId: string) => void;
 }
 
 const FolderItem: React.FC<FolderItemProps> = ({ 
     folder, 
+    notes,
     selectedNoteId,
-    onNoteSelect,
-    onFolderUpdate,
-    onNoteUpdateInFolder
+    onUpdateFolder,
+    onDeleteFolder,
+    onSelectNote,
+    onCreateNote,
+    onUpdateNote,
+    onDeleteNote
 }) => {
-    const [notes, setNotes] = useState<Note[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const [isLoadingNotes, setIsLoadingNotes] = useState(false);
     // Folder renaming
@@ -30,30 +37,6 @@ const FolderItem: React.FC<FolderItemProps> = ({
     const [showFolderContextMenu, setShowFolderContextMenu] = useState(false);
     const folderContextMenuRef = useRef<HTMLDivElement>(null);
     const folderNameInputRef = useRef<HTMLInputElement>(null);
-
-    const fetchNotes = async () => {
-        setIsLoadingNotes(true);
-        try {
-            const response = await fetch(`/api/notes?folder_id=${folder.id}`);
-            if (!response.ok) throw new Error('Failed to fetch notes for folder');
-            const data: Note[] = await response.json();
-            setNotes(data);
-        } catch (err: any) {
-            console.error(`Error fetching notes for folder ${folder.id}:`, err);
-            setNotes([]);
-        } finally {
-            setIsLoadingNotes(false);
-        }
-    };
-
-    useEffect(() => {
-        if (isOpen && !notes.length && !isLoadingNotes) { // Fetch only if open and notes aren't loaded
-            fetchNotes();
-        } else if (!isOpen) {
-            // Optionally clear notes when closed to save memory, or keep them cached
-            // setNotes([]); 
-        }
-    }, [folder.id, isOpen]); // Removed notes.length and isLoadingNotes from deps to avoid loops/re-fetches on setNotes
 
     useEffect(() => {
         if (isRenamingFolder && folderNameInputRef.current) {
@@ -81,23 +64,6 @@ const FolderItem: React.FC<FolderItemProps> = ({
         }
     };
 
-    const handleCreateNewNote = async () => {
-        try {
-            const response = await fetch('/api/notes', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title: 'Untitled Note', content: '', folder_id: folder.id }),
-            });
-            if (!response.ok) throw new Error(await response.text() || 'Failed to create note');
-            const newNote: Note = await response.json();
-            await fetchNotes(); // Refresh this folder's notes
-            if (!isOpen) setIsOpen(true); // Ensure folder is open
-            onNoteSelect(newNote.id, folder.id); // Select the new note
-        } catch (error) {
-            console.error('Error creating new note:', error);
-        }
-    };
-
     // Folder Actions
     const handleStartRenameFolder = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -111,33 +77,14 @@ const FolderItem: React.FC<FolderItemProps> = ({
             setIsRenamingFolder(false);
             return;
         }
-        try {
-            const response = await fetch(`/api/folders/${folder.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: newFolderName }),
-            });
-            if (!response.ok) throw new Error('Failed to rename folder');
-            setIsRenamingFolder(false);
-            onFolderUpdate(); // Notify sidebar to refresh all folders
-        } catch (error) {
-            console.error('Error renaming folder:', error);
-            setNewFolderName(folder.name);
-            setIsRenamingFolder(false);
-        }
+
+        onUpdateFolder(folder.id, newFolderName);
     };
 
     const handleDeleteFolder = async (e: React.MouseEvent) => {
         e.stopPropagation();
         if (window.confirm(`Are you sure you want to delete folder "${folder.name}"? This will also delete all notes inside.`)) {
-            try {
-                const response = await fetch(`/api/folders/${folder.id}`, { method: 'DELETE' });
-                if (!response.ok) throw new Error('Failed to delete folder');
-                setShowFolderContextMenu(false);
-                onFolderUpdate(); // Notify sidebar to refresh all folders
-            } catch (error) {
-                console.error('Error deleting folder:', error);
-            }
+            onDeleteFolder(folder.id);
         }
     };
 
@@ -147,15 +94,6 @@ const FolderItem: React.FC<FolderItemProps> = ({
             setIsRenamingFolder(false);
             setNewFolderName(folder.name);
         }
-    };
-    
-    // Callback for NoteItem when a note is deleted or renamed
-    const handleNoteListUpdate = () => {
-        fetchNotes(); // Re-fetch notes for this specific folder
-        // If a deleted note was the selected one, the parent (page.tsx) should handle clearing selection
-        // via the onNoteUpdateInFolder prop if it leads to selectedNoteId becoming invalid.
-        // For now, FolderItem just ensures its own list is up-to-date.
-        onNoteUpdateInFolder(folder.id);
     };
 
     return (
@@ -186,7 +124,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
                         <span className="text-xs text-gray-400 pr-1">{notes.length}</span>
                     ) : null}
                     {!isRenamingFolder && 
-                        <button onClick={(e) => { e.stopPropagation(); handleCreateNewNote(); }}
+                        <button onClick={(e) => { e.stopPropagation(); onCreateNote(folder.id, ''); }}
                             className="p-0.5 rounded opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-gray-600"
                             title="New Note in this folder">
                             <Plus className="w-4 h-4" />
@@ -217,11 +155,10 @@ const FolderItem: React.FC<FolderItemProps> = ({
                         <NoteItem
                             key={note.id}
                             note={note}
-                            isSelected={selectedNoteId === note.id}
-                            folderId={folder.id}
-                            onSelect={onNoteSelect}
-                            onNoteDeleted={handleNoteListUpdate} // For re-fetching notes in this folder
-                            onNoteRenamed={handleNoteListUpdate} // For re-fetching notes in this folder
+                            selectedNoteId={selectedNoteId}
+                            onSelectNote={onSelectNote}
+                            onUpdateNote={onUpdateNote}
+                            onDeleteNote={onDeleteNote}
                         />
                     ))}
                     {!isLoadingNotes && notes.length === 0 && (

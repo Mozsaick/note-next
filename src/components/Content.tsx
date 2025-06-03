@@ -7,168 +7,88 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 interface ContentProps {
-    selectedNoteId: string;
-    onNoteSelect: (noteId: string) => void;
+    note: Note | null;
+    onUpdateNote: (noteId: string, title: string, content: string) => void;
 }
 
 const SAVE_DEBOUNCE_DELAY = 1500; // 1.5 seconds
 
 type ViewMode = 'edit' | 'preview';
 
-const Content: React.FC<ContentProps> = ({ selectedNoteId, onNoteSelect }) => {
+const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
     const [noteTitle, setNoteTitle] = useState('');
     const [noteContent, setNoteContent] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [viewMode, setViewMode] = useState<ViewMode>('edit');
-
-    // Refs to store the fetched state to compare against for saving
-    const fetchedTitleRef = useRef<string | null>(null);
-    const fetchedContentRef = useRef<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
-        // if (debounceTimeoutRef.current) {
-            // clearTimeout(debounceTimeoutRef.current);
-        // }
-        setSaveStatus('idle');
-        setViewMode('edit');
-
-        const fetchNote = async () => {
-            if (!selectedNoteId) {
-                setNoteTitle('');
-                setNoteContent('');
-                setError(null);
-                fetchedTitleRef.current = null;
-                fetchedContentRef.current = null;
-                setIsLoading(false);
-                return;
-            }
-
+        if (note) {
+            setNoteTitle(note.title || 'Untitled Note');
+            setNoteContent(note.content ?? '');
+            setIsLoading(false);
+            setError(null);
+            setSaveStatus('idle');
+            setViewMode('edit');
+        } else {
+            setNoteTitle('');
+            setNoteContent('');
             setIsLoading(true);
             setError(null);
-            
-            try {
-                const response = await fetch(`/api/notes/${selectedNoteId}`);
-                if (!response.ok) {
-                    const errText = await response.text();
-                    setNoteTitle('');
-                    setNoteContent('');
-                    fetchedTitleRef.current = null;
-                    fetchedContentRef.current = null;
-                    setError(errText || 'Note not found');
-                    return; // Exit after handling error, finally will run
-                }
+            setSaveStatus('idle');
+        }
+        if (debounceTimeoutRef.current) {
+            clearTimeout(debounceTimeoutRef.current);
+        }
+        setSaveStatus('idle');
+    }, [note]);
 
-                const data: Note = await response.json();
-                const title = data.title || 'Untitled Note';
-                const content = data.content ?? '';
-                setNoteTitle(title);
-                setNoteContent(content);
-                fetchedTitleRef.current = title;
-                fetchedContentRef.current = content;
-            } catch (err: any) {
-                console.error('Error fetching note:', err);
-                setError(err.message || 'Error loading note');
-                setNoteTitle('');
-                setNoteContent('');
-                fetchedTitleRef.current = null;
-                fetchedContentRef.current = null;
-            } finally {
-                setIsLoading(false);
+    useEffect(() => {
+        if (!note || isLoading) {
+            return;
+        }
+
+        const hasTitleChanged = noteTitle !== (note.title || 'Untitled Note');
+        const hasContentChanged = noteContent !== (note.content ?? '');
+
+        if (!hasTitleChanged && !hasContentChanged) {
+            if (saveStatus !== 'idle') setSaveStatus('idle');
+            return;
+        }
+        
+        if (debounceTimeoutRef.current) {
+            clearTimeout(debounceTimeoutRef.current);
+        }
+
+        setSaveStatus('idle');
+
+        debounceTimeoutRef.current = setTimeout(async () => {
+            if (!note || !note.id) {
+                setSaveStatus('idle');
+                return;
             }
-        };
-
-        fetchNote();
+            setSaveStatus('saving');
+            setError(null);
+            try {
+                await onUpdateNote(note.id, noteTitle, noteContent);
+                setSaveStatus('saved');
+                setTimeout(() => setSaveStatus('idle'), 2000);
+            } catch (err: any) {
+                console.error('Error updating note:', err);
+                setError(err.message || 'Failed to update note');
+                setSaveStatus('error');
+            }
+        }, SAVE_DEBOUNCE_DELAY);
 
         return () => {
             if (debounceTimeoutRef.current) {
                 clearTimeout(debounceTimeoutRef.current);
             }
         };
-    }, [selectedNoteId]);
-
-    // Debounced save effect
-    useEffect(() => {
-        if (!selectedNoteId || isLoading) {
-            // Don't save if no note is selected or if it's currently loading initial data
-            // or if the title/content are the same as fetched
-            return;
-        }
-
-        const hasTitleChanged = noteTitle !== fetchedTitleRef.current;
-        const hasContentChanged = noteContent !== fetchedContentRef.current;
-
-        if (!hasTitleChanged && !hasContentChanged) {
-            // If content hasn't actually changed from what was fetched, don't trigger save logic
-            // This might happen if fetchNote sets state, triggering this effect, but values are same.
-            if (saveStatus !== 'idle') setSaveStatus('idle');
-            return;
-        }
-
-        if (debounceTimeoutRef.current) {
-            clearTimeout(debounceTimeoutRef.current);
-        }
-
-        setSaveStatus('idle'); // Reset to idle if user continues typing
-
-        const noteIdToSave = selectedNoteId;
-
-        debounceTimeoutRef.current = setTimeout(async () => {
-            if (!noteIdToSave) { 
-                setSaveStatus('idle');
-                return;
-            }
-
-            setSaveStatus('saving');
-            setError(null);
-
-            const payload: { title?: string; content?: string } = {};
-            if (noteTitle !== fetchedTitleRef.current) payload.title = noteTitle;
-            if (noteContent !== fetchedContentRef.current) payload.content = noteContent;
-
-            if (Object.keys(payload).length === 0) {
-                setSaveStatus('idle');
-                return; // No actual changes to save
-            }
-
-            try {
-                const response = await fetch(`/api/notes/${noteIdToSave}`, { // Use noteIdToSave
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
-                if (!response.ok) {
-                    const errText = await response.text();
-                    throw new Error(errText || 'Failed to save note');
-                }
-                const updatedNote: Note = await response.json();
-                
-                if (selectedNoteId === noteIdToSave) {
-                    fetchedTitleRef.current = updatedNote.title || 'Untitled Note';
-                    fetchedContentRef.current = updatedNote.content ?? '';
-                    setNoteTitle(updatedNote.title || 'Untitled Note');
-                    setNoteContent(updatedNote.content ?? '');
-                    setSaveStatus('saved');
-                    setTimeout(() => setSaveStatus('idle'), 2000);
-                } else {
-                    setSaveStatus('idle');
-                }
-            } catch (err: any) {
-                console.error('Error saving note:', err);
-                if (selectedNoteId === noteIdToSave) {
-                    setError(err.message);
-                    setSaveStatus('error');
-                } else {
-                    console.error(`Error saving note ${noteIdToSave} in background:`, err.message);
-                    setSaveStatus('idle');
-                }
-            }
-        }, SAVE_DEBOUNCE_DELAY);
-
-    }, [noteTitle, noteContent]);
+    }, [noteTitle, noteContent, note, isLoading, onUpdateNote]);
 
     const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setNoteTitle(e.target.value);
@@ -179,14 +99,11 @@ const Content: React.FC<ContentProps> = ({ selectedNoteId, onNoteSelect }) => {
     };
 
     let statusMessage = '';
-    // if (isLoading && selectedNoteId) statusMessage = 'Loading note...'; // Prioritize loading message
-    // else if (saveStatus === 'saving') statusMessage = 'Saving...';
-    // else if (saveStatus === 'saved') statusMessage = 'Saved!';
-    // else if (saveStatus === 'error') statusMessage = `Error: ${error || 'Could not save'}`;
-    // else if (error && !isLoading) statusMessage = `Error: ${error}` // Show general fetch error
-    if (saveStatus === 'error') statusMessage = `Error: ${error || 'Could not save'}`;
+    if (saveStatus === 'saving') statusMessage = 'Saving...';
+    else if (saveStatus === 'saved') statusMessage = 'Saved!';
+    else if (saveStatus === 'error') statusMessage = `Error: ${error || 'Could not save'}`;
     
-    if (!selectedNoteId && !isLoading) { //isLoading check for initial app load case
+    if (!note) {
         return (
             <div className="flex items-center justify-center h-full p-4 bg-gray-850 text-white">
                 <p className="text-gray-500 text-lg">Select a note to view or edit.</p>
@@ -194,7 +111,7 @@ const Content: React.FC<ContentProps> = ({ selectedNoteId, onNoteSelect }) => {
         );
     }
     
-    if (isLoading && selectedNoteId) {
+    if (isLoading && !noteTitle && !noteContent) {
          return (
             <div className="flex flex-col items-center justify-center h-full p-4 bg-gray-850 text-white">
                 <LoadingSpinner size={32} />
@@ -211,7 +128,7 @@ const Content: React.FC<ContentProps> = ({ selectedNoteId, onNoteSelect }) => {
                 onChange={handleTitleChange}
                 placeholder="Note Title"
                 className="text-xl font-bold mb-1 p-2 bg-transparent border-b border-gray-700 focus:outline-none focus:border-blue-500 flex-shrink-0"
-                disabled={isLoading || saveStatus === 'saving'}
+                disabled={saveStatus === 'saving'}
             />
             <div className="my-2 flex items-center justify-between flex-shrink-0">
                 <div>
@@ -243,7 +160,7 @@ const Content: React.FC<ContentProps> = ({ selectedNoteId, onNoteSelect }) => {
                     onChange={handleContentChange}
                     placeholder="Start typing your note here... (Markdown supported)"
                     className="w-full flex-grow p-3 bg-gray-800 border border-gray-700 rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 text-base leading-relaxed font-mono"
-                    disabled={isLoading || saveStatus === 'saving'}
+                    disabled={saveStatus === 'saving'}
                 />
             ) : (
                 <div className="w-full flex-grow p-3 bg-gray-800 border border-gray-700 rounded-md overflow-y-auto prose prose-sm prose-invert max-w-none">
