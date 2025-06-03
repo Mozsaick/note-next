@@ -120,8 +120,8 @@ const NotePage = () => {
         setSelectedNoteId(noteId);
     };
 
-    const handleNoteUpdate = (folderId: string) => {
-        setSelectedNoteId('');
+    const handleNoteUpdate = (folderId: string, title: string, content: string) => {
+        updateNote(folderId, title, content);
     };
 
     // Wrapper function to match the expected signature for Content.onUpdateNote
