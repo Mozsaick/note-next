@@ -19,7 +19,6 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
     const [noteTitle, setNoteTitle] = useState('');
     const [noteContent, setNoteContent] = useState('');
     const [isLoading, setIsLoading] = useState(true);
-    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [viewMode, setViewMode] = useState<ViewMode>('edit');
     const [error, setError] = useState<string | null>(null);
 
@@ -31,19 +30,15 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
             setNoteContent(note.content ?? '');
             setIsLoading(false);
             setError(null);
-            setSaveStatus('idle');
-            setViewMode('edit');
         } else {
             setNoteTitle('');
             setNoteContent('');
             setIsLoading(true);
             setError(null);
-            setSaveStatus('idle');
         }
         if (debounceTimeoutRef.current) {
             clearTimeout(debounceTimeoutRef.current);
         }
-        setSaveStatus('idle');
     }, [note]);
 
     useEffect(() => {
@@ -55,7 +50,6 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
         const hasContentChanged = noteContent !== (note.content ?? '');
 
         if (!hasTitleChanged && !hasContentChanged) {
-            if (saveStatus !== 'idle') setSaveStatus('idle');
             return;
         }
         
@@ -63,23 +57,15 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
             clearTimeout(debounceTimeoutRef.current);
         }
 
-        setSaveStatus('idle');
-
         debounceTimeoutRef.current = setTimeout(async () => {
             if (!note || !note.id) {
-                setSaveStatus('idle');
                 return;
             }
-            setSaveStatus('saving');
-            setError(null);
             try {
                 await onUpdateNote(note.id, noteTitle, noteContent);
-                setSaveStatus('saved');
-                setTimeout(() => setSaveStatus('idle'), 2000);
             } catch (err: any) {
                 console.error('Error updating note:', err);
                 setError(err.message || 'Failed to update note');
-                setSaveStatus('error');
             }
         }, SAVE_DEBOUNCE_DELAY);
 
@@ -98,11 +84,6 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
         setNoteContent(e.target.value);
     };
 
-    let statusMessage = '';
-    if (saveStatus === 'saving') statusMessage = 'Saving...';
-    else if (saveStatus === 'saved') statusMessage = 'Saved!';
-    else if (saveStatus === 'error') statusMessage = `Error: ${error || 'Could not save'}`;
-    
     if (!note) {
         return (
             <div className="flex items-center justify-center h-full p-4 bg-gray-850 text-white">
@@ -128,7 +109,6 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
                 onChange={handleTitleChange}
                 placeholder="Note Title"
                 className="text-xl font-bold mb-1 p-2 bg-transparent border-b border-gray-700 focus:outline-none focus:border-blue-500 flex-shrink-0"
-                disabled={saveStatus === 'saving'}
             />
             <div className="my-2 flex items-center justify-between flex-shrink-0">
                 <div>
@@ -149,9 +129,6 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
                         Preview
                     </button>
                 </div>
-                <div className="text-xs text-gray-500 h-4 pl-2">
-                    {statusMessage}
-                </div>
             </div>
 
             {viewMode === 'edit' ? (
@@ -160,7 +137,6 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
                     onChange={handleContentChange}
                     placeholder="Start typing your note here... (Markdown supported)"
                     className="w-full flex-grow p-3 bg-gray-800 border border-gray-700 rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 text-base leading-relaxed font-mono"
-                    disabled={saveStatus === 'saving'}
                 />
             ) : (
                 <div className="w-full flex-grow p-3 bg-gray-800 border border-gray-700 rounded-md overflow-y-auto prose prose-sm prose-invert max-w-none">
