@@ -13,8 +13,8 @@ interface FolderItemProps {
     onUpdateFolder: (folderId: string, name: string) => void;
     onDeleteFolder: (folderId: string) => void;
     onSelectNote: (noteId: string, folderId: string) => void;
-    onCreateNote: (title: string, content: string) => void;
-    onUpdateNote: (folderId: string, title: string, content: string) => void;
+    onCreateNote: (folderId: string, title: string, content: string) => void;
+    onUpdateNote: (noteId: string, title: string, content: string) => void;
     onDeleteNote: (noteId: string) => void;
 }
 
@@ -38,12 +38,23 @@ const FolderItem: React.FC<FolderItemProps> = ({
     const folderContextMenuRef = useRef<HTMLDivElement>(null);
     const folderNameInputRef = useRef<HTMLInputElement>(null);
 
+    // New note creation states
+    const [isCreatingNote, setIsCreatingNote] = useState(false);
+    const [newNoteTitle, setNewNoteTitle] = useState('');
+    const newNoteTitleInputRef = useRef<HTMLInputElement>(null);
+
     useEffect(() => {
         if (isRenamingFolder && folderNameInputRef.current) {
             folderNameInputRef.current.focus();
             folderNameInputRef.current.select();
         }
     }, [isRenamingFolder]);
+
+    useEffect(() => {
+        if (isCreatingNote && newNoteTitleInputRef.current) {
+            newNoteTitleInputRef.current.focus();
+        }
+    }, [isCreatingNote]);
 
     // Click outside handler for folder context menu
     useEffect(() => {
@@ -59,7 +70,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
     }, []); 
 
     const handleFolderClick = () => {
-        if (!isRenamingFolder) {
+        if (!isRenamingFolder && !isCreatingNote) {
             setIsOpen(!isOpen);
         }
     };
@@ -77,11 +88,9 @@ const FolderItem: React.FC<FolderItemProps> = ({
             setIsRenamingFolder(false);
             return;
         }
-
-        onUpdateFolder(folder.id, newFolderName);
+        onUpdateFolder(folder.id, newFolderName.trim());
         setIsRenamingFolder(false);
-        setShowFolderContextMenu(false);
-        setNewFolderName(newFolderName);
+        setNewFolderName(newFolderName.trim());
     };
 
     const handleDeleteFolder = async (e: React.MouseEvent) => {
@@ -89,6 +98,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
         if (window.confirm(`Are you sure you want to delete folder "${folder.name}"? This will also delete all notes inside.`)) {
             onDeleteFolder(folder.id);
         }
+        setShowFolderContextMenu(false);
     };
 
     const handleFolderRenameKeyDown = (e: React.KeyboardEvent) => {
@@ -99,6 +109,41 @@ const FolderItem: React.FC<FolderItemProps> = ({
         }
     };
 
+    // New Note Creation Handlers
+    const handleStartCreateNewNote = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsOpen(true);
+        setIsCreatingNote(true);
+        setNewNoteTitle('');
+    };
+
+    const handleCreateNewNote = async () => {
+        if (!newNoteTitle.trim()) {
+            setIsCreatingNote(false);
+            return;
+        }
+        try {
+            await onCreateNote(folder.id, newNoteTitle.trim(), '');
+            setNewNoteTitle('');
+            setIsCreatingNote(false);
+        } catch (error) {
+            console.error("Failed to create note:", error);
+        }
+    };
+
+    const handleNewNoteTitleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') handleCreateNewNote();
+        if (e.key === 'Escape') {
+            setIsCreatingNote(false);
+            setNewNoteTitle('');
+        }
+    };
+
+    const handleCancelCreateNewNote = () => {
+        setIsCreatingNote(false);
+        setNewNoteTitle('');
+    }
+
     return (
         <li className="space-y-0.5 relative">
             {/* Folder Header */}
@@ -106,6 +151,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
                 <button 
                     onClick={handleFolderClick}
                     className={`flex items-center gap-2 flex-grow min-w-0`}
+                    disabled={isCreatingNote}
                 >
                     {isOpen ? <ChevronDown className="w-4 h-4 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 flex-shrink-0" />}
                     {isRenamingFolder ? (
@@ -121,19 +167,19 @@ const FolderItem: React.FC<FolderItemProps> = ({
                     )}
                 </button>
                 <div className="flex items-center ml-auto flex-shrink-0">
-                    {isLoadingNotes ? (
-                        <LoadingSpinner size={16} color="#9CA3AF" /> // Smaller spinner for notes list
-                    ) : !isRenamingFolder && notes.length > 0 ? (
+                    {isLoadingNotes && !isOpen ? (
+                        <LoadingSpinner size={16} color="#9CA3AF" />
+                    ) : !isRenamingFolder && notes.length > 0 && !isCreatingNote ? (
                         <span className="text-xs text-gray-400 pr-1">{notes.length}</span>
                     ) : null}
-                    {!isRenamingFolder && 
-                        <button onClick={(e) => { e.stopPropagation(); onCreateNote(folder.id, ''); }}
+                    {!isRenamingFolder && !isCreatingNote &&
+                        <button onClick={handleStartCreateNewNote}
                             className="p-0.5 rounded opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-gray-600"
                             title="New Note in this folder">
                             <Plus className="w-4 h-4" />
                         </button>
                     }
-                    {!isRenamingFolder &&
+                    {!isRenamingFolder && !isCreatingNote &&
                         <button onClick={(e) => { e.stopPropagation(); setShowFolderContextMenu(!showFolderContextMenu); }}
                             className="p-0.5 rounded opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-gray-600"
                             title="Folder options">
@@ -151,6 +197,22 @@ const FolderItem: React.FC<FolderItemProps> = ({
                 </div>
             )}
 
+            {/* New Note Input - Placed inside the folder item, visible when isOpen and isCreatingNote */}
+            {isOpen && isCreatingNote && (
+                <div className="ml-3 pl-1 pr-2 py-1 flex items-center gap-1">
+                    <Plus className="w-4 h-4 text-gray-500 flex-shrink-0 ml-1.5" />
+                    <input 
+                        ref={newNoteTitleInputRef}
+                        type="text" 
+                        value={newNoteTitle}
+                        onChange={(e) => setNewNoteTitle(e.target.value)}
+                        onKeyDown={handleNewNoteTitleKeyDown}
+                        placeholder="New note title..."
+                        className="bg-gray-600 text-white p-1 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 w-full text-sm"
+                    />
+                </div>
+            )}
+
             {/* Notes List */}
             {isOpen && !isRenamingFolder && (
                 <ul className="ml-3 pl-3 border-l border-gray-600 space-y-0.5">
@@ -164,9 +226,10 @@ const FolderItem: React.FC<FolderItemProps> = ({
                             onDeleteNote={onDeleteNote}
                         />
                     ))}
-                    {!isLoadingNotes && notes.length === 0 && (
+                    {!isLoadingNotes && notes.length === 0 && !isCreatingNote && (
                          <li className="px-2 py-1 text-xs text-gray-500 italic">No notes in this folder.</li>
                     )}
+                    {isLoadingNotes && <li className="px-2 py-1"><LoadingSpinner size={16}/></li>}
                 </ul>
             )}
         </li>

@@ -10,7 +10,7 @@ interface FolderSidebarProps {
     notes: Note[];
     selectedNoteId: string;
     onCreateFolder: (name: string) => void;
-    onCreateNote: (title: string, content: string) => void;
+    onCreateNote: (folderId: string, title: string, content: string) => void;
     onUpdateFolder: (folderId: string, name: string) => void;
     onDeleteFolder: (folderId: string) => void;
     onSelectNote: (noteId: string, folderId: string) => void;

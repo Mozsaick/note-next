@@ -79,11 +79,11 @@ const NotePage = () => {
         }
     };
 
-    const createNote = async (title: string, content: string) => {
+    const createNote = async (folderId: string, title: string, content: string) => {
         const response = await fetch('/api/notes', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, content }),
+            body: JSON.stringify({ folder_id: folderId, title, content }),
         });
         if (response.ok) {
             await fetchNotes();
