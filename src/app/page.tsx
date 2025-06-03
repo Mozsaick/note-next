@@ -237,8 +237,8 @@ export default function FoldersPage() {
     try {
       const notePayload: NotePostBody = {
         folder_id: targetFolderId.trim(),
-        title: newNoteTitle.trim() || null, // API側でnullを許容するように変更
-        content: newNoteContent.trim() || null, // API側でnullを許容するように変更
+        title: newNoteTitle.trim() || undefined,
+        content: newNoteContent.trim() || undefined,
       };
       const response = await fetch('/api/notes', {
         method: 'POST',

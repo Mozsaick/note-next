@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Note } from '@/types';
 import LoadingSpinner from './LoadingSpinner';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ContentProps {
     selectedNoteId: string;
@@ -11,12 +13,15 @@ interface ContentProps {
 
 const SAVE_DEBOUNCE_DELAY = 1500; // 1.5 seconds
 
+type ViewMode = 'edit' | 'preview';
+
 const Content: React.FC<ContentProps> = ({ selectedNoteId, onNoteSelect }) => {
     const [noteTitle, setNoteTitle] = useState('');
     const [noteContent, setNoteContent] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const [viewMode, setViewMode] = useState<ViewMode>('edit');
 
     // Refs to store the fetched state to compare against for saving
     const fetchedTitleRef = useRef<string | null>(null);
@@ -30,6 +35,7 @@ const Content: React.FC<ContentProps> = ({ selectedNoteId, onNoteSelect }) => {
             clearTimeout(debounceTimeoutRef.current);
         }
         setSaveStatus('idle');
+        setViewMode('edit'); // Default to edit mode when note changes
 
         const fetchNote = async () => {
             if (selectedNoteId) {
@@ -198,16 +204,45 @@ const Content: React.FC<ContentProps> = ({ selectedNoteId, onNoteSelect }) => {
                 className="text-xl font-bold mb-1 p-2 bg-transparent border-b border-gray-700 focus:outline-none focus:border-blue-500 flex-shrink-0"
                 disabled={isLoading || saveStatus === 'saving'}
             />
-            <div className="text-xs text-gray-500 mb-2 h-4 pl-2">
-                {statusMessage}
+            <div className="my-2 flex items-center justify-between flex-shrink-0">
+                <div>
+                    <button 
+                        onClick={() => setViewMode('edit')} 
+                        className={`px-3 py-1 text-sm rounded-l-md focus:outline-none ${
+                            viewMode === 'edit' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'
+                        }`}
+                    >
+                        Edit
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('preview')} 
+                        className={`px-3 py-1 text-sm rounded-r-md focus:outline-none ${
+                            viewMode === 'preview' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'
+                        }`}
+                    >
+                        Preview
+                    </button>
+                </div>
+                <div className="text-xs text-gray-500 h-4 pl-2">
+                    {statusMessage}
+                </div>
             </div>
-            <textarea
-                value={noteContent}
-                onChange={handleContentChange}
-                placeholder="Start typing your note here..."
-                className="w-full flex-grow p-2 bg-gray-800 border border-gray-700 rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
-                disabled={isLoading || saveStatus === 'saving'}
-            />
+
+            {viewMode === 'edit' ? (
+                <textarea
+                    value={noteContent}
+                    onChange={handleContentChange}
+                    placeholder="Start typing your note here... (Markdown supported)"
+                    className="w-full flex-grow p-3 bg-gray-800 border border-gray-700 rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 text-base leading-relaxed font-mono"
+                    disabled={isLoading || saveStatus === 'saving'}
+                />
+            ) : (
+                <div className="w-full flex-grow p-3 bg-gray-800 border border-gray-700 rounded-md overflow-y-auto prose prose-sm prose-invert max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {noteContent} 
+                    </ReactMarkdown>
+                </div>
+            )}
         </div>
     )
 };

@@ -3,9 +3,9 @@ import { supabase } from '../../../../libs/supabase'; // lib/supabase.ts への�
 import type { Note, NoteUpdateBody } from '../../../../types';   // types/index.ts への適切なパス
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     noteId: string;
-  };
+  }>;
 }
 
 /**
@@ -13,7 +13,8 @@ interface RouteParams {
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const { noteId } = params;
+    const resolvedParams = await params;
+    const { noteId } = resolvedParams;
 
     if (!noteId) {
       return NextResponse.json({ error: 'Note ID is required' }, { status: 400 });
@@ -46,7 +47,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const { noteId } = params;
+    const resolvedParams = await params;
+    const { noteId } = resolvedParams;
 
     if (!noteId) {
       return NextResponse.json({ error: 'Note ID is required' }, { status: 400 });
@@ -96,7 +98,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const { noteId } = params;
+    const resolvedParams = await params;
+    const { noteId } = resolvedParams;
 
     if (!noteId) {
       return NextResponse.json({ error: 'Note ID is required' }, { status: 400 });
