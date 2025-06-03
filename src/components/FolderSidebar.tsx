@@ -104,7 +104,7 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
                         selectedNoteId={selectedNoteId}
                         onNoteSelect={onNoteSelect}
                         onFolderUpdate={fetchFolders}
-                        onNoteUpdate={onNoteUpdate}
+                        onNoteUpdateInFolder={onNoteUpdate}
                     />
                 ))}
             </ul>

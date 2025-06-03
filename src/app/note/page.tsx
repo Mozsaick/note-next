@@ -16,17 +16,21 @@ const NotePage = () => {
     };
 
     return (
-        <div className="flex">
-            <FolderSidebar
-                selectedNoteId={selectedNoteId}
+        <div className="flex h-screen bg-gray-900 text-white">
+            <div className="w-72 flex-shrink-0">
+                <FolderSidebar 
+                selectedNoteId={selectedNoteId} 
                 onNoteSelect={handleNoteSelect}
                 onNoteUpdate={handleNoteUpdate}
-            />
-        <Content
-            selectedNoteId={selectedNoteId}
-            onNoteSelect={handleNoteSelect}
-        />
-    </div>
+                />
+            </div>
+            <div className="flex-grow">
+                <Content 
+                selectedNoteId={selectedNoteId} 
+                onNoteSelect={handleNoteSelect} 
+                />
+            </div>
+        </div>
     )
 }
 
