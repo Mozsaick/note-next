@@ -2,12 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../../../../libs/supabase';
 import type { FolderPostBody } from '../../../../types';
 
+interface RouteParams {
+  params: Promise<{ 
+    folderId: string;
+  }>;
+}
+
 /**
  * 特定のフォルダを取得 (GET /api/folders/[folderId])
  */
-export async function GET(request: NextRequest, context: { params: { folderId: string } }) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const { folderId } = context.params;
+    const resolvedParams = await params;
+    const { folderId } = resolvedParams;
 
     if (!folderId) {
       return NextResponse.json({ error: 'Folder ID is required' }, { status: 400 });
@@ -40,9 +47,10 @@ export async function GET(request: NextRequest, context: { params: { folderId: s
  * 特定のフォルダを更新 (PUT /api/folders/[folderId])
  * 主に名前の変更を想定
  */
-export async function PUT(request: NextRequest, context: { params: { folderId: string } }) {
+export async function PUT(request: NextRequest, { params }: RouteParams) {
     try {
-      const { folderId } = context.params;
+      const resolvedParams = await params;
+      const { folderId } = resolvedParams;
   
       if (!folderId) {
         return NextResponse.json({ error: 'Folder ID is required' }, { status: 400 });
@@ -84,9 +92,10 @@ export async function PUT(request: NextRequest, context: { params: { folderId: s
   /**
    * 特定のフォルダを削除 (DELETE /api/folders/[folderId])
    */
-  export async function DELETE(request: NextRequest, context: { params: { folderId: string } }) {
+  export async function DELETE(request: NextRequest, { params }: RouteParams) {
     try {
-      const { folderId } = context.params;
+      const resolvedParams = await params;
+      const { folderId } = resolvedParams;
   
       if (!folderId) {
         return NextResponse.json({ error: 'Folder ID is required' }, { status: 400 });
@@ -104,7 +113,9 @@ export async function PUT(request: NextRequest, context: { params: { folderId: s
         if (count === 0) {
           return NextResponse.json({ error: 'Folder not found or already deleted' }, { status: 404 });
         }
-        return NextResponse.json({ error: error.message || 'Failed to delete folder' }, { status: 500 });
+        // Ensure error.message exists, otherwise provide a default
+        const errorMessage = error.message || 'Failed to delete folder';
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
       }
   
       if (count === 0) {
