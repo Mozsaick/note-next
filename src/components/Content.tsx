@@ -34,13 +34,23 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
             setIsLoading(true);
             return;
         }
+
+        // First time loading
+        if (!previousNoteId) {
+            setNoteId(note.id);
+            setNoteTitle(note.title || 'Untitled Note');
+            setNoteContent(note.content ?? '');
+            setIsLoading(false);
+            return;
+        }
+
+        // Different note selected
+        if (previousNoteId !== note.id) {
+            setNoteId(note.id);
+            setNoteTitle(note.title || 'Untitled Note');
+            setNoteContent(note.content ?? '');
+            setIsLoading(false);
         
-        setNoteId(note.id);
-        setNoteTitle(note.title || 'Untitled Note');
-        setNoteContent(note.content ?? '');
-        setIsLoading(false);
-        
-        if (previousNoteId && previousNoteId !== note.id) {
             onUpdateNote(previousNoteId, previousNoteTitle, previousNoteContent);
         }
     }, [note]); 
