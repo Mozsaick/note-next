@@ -30,7 +30,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
     onDeleteNote
 }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [isLoadingNotes, setIsLoadingNotes] = useState(false);
+    const [isLoadingNotes] = useState(false);
     // Folder renaming
     const [isRenamingFolder, setIsRenamingFolder] = useState(false);
     const [newFolderName, setNewFolderName] = useState(folder.name);
@@ -138,11 +138,6 @@ const FolderItem: React.FC<FolderItemProps> = ({
             setNewNoteTitle('');
         }
     };
-
-    const handleCancelCreateNewNote = () => {
-        setIsCreatingNote(false);
-        setNewNoteTitle('');
-    }
 
     return (
         <li className="space-y-0.5 relative">

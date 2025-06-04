@@ -19,7 +19,6 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
     const [noteTitle, setNoteTitle] = useState('');
     const [noteContent, setNoteContent] = useState('');
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
 
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -33,7 +32,6 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
             setNoteTitle('');
             setNoteContent('');
             setIsLoading(true);
-            setError(null);
             return;
         }
         
@@ -41,7 +39,6 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
         setNoteTitle(note.title || 'Untitled Note');
         setNoteContent(note.content ?? '');
         setIsLoading(false);
-        setError(null);
         
         if (previousNoteId && previousNoteId !== note.id) {
             onUpdateNote(previousNoteId, previousNoteTitle, previousNoteContent);
@@ -69,7 +66,6 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
                 await onUpdateNote(note.id, noteTitle, noteContent);
             } catch (err: any) {
                 console.error('Error updating note:', err);
-                setError(err.message || 'Failed to update note');
             }
         }, SAVE_DEBOUNCE_DELAY);
 

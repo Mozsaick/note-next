@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Folder, Note } from '@/types';
 import { Plus } from 'lucide-react';
 import FolderItem from './FolderItem';
