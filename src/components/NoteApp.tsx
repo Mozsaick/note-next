@@ -5,7 +5,7 @@ import FolderSidebar from '@/components/FolderSidebar';
 import Content from '@/components/Content';
 import { Folder, Note } from '@/types';
 
-const NotePage = () => {
+const NoteApp = () => {
     const [folders, setFolders] = useState<Folder[]>([]);
     const [notes, setNotes] = useState<Note[]>([]);
     const [selectedNoteId, setSelectedNoteId] = useState('');    
@@ -158,4 +158,4 @@ const NotePage = () => {
     )
 }
 
-export default NotePage;
+export default NoteApp;
