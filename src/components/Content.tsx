@@ -13,14 +13,12 @@ interface ContentProps {
 
 const SAVE_DEBOUNCE_DELAY = 1000; // 1 second
 
-type ViewMode = 'edit' | 'preview';
 
 const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
     const [noteId, setNoteId] = useState('');
     const [noteTitle, setNoteTitle] = useState('');
     const [noteContent, setNoteContent] = useState('');
     const [isLoading, setIsLoading] = useState(true);
-    const [viewMode, setViewMode] = useState<ViewMode>('edit');
     const [error, setError] = useState<string | null>(null);
 
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -114,43 +112,27 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
                 value={noteTitle}
                 onChange={handleTitleChange}
                 placeholder="Note Title"
-                className="text-xl font-bold mb-1 p-2 bg-transparent border-b border-gray-700 focus:outline-none focus:border-blue-500 flex-shrink-0"
+                className="text-xl font-bold mb-1 p-2 bg-transparent border-b border-gray-700 focus:outline-none flex-shrink-0"
             />
-            <div className="my-2 flex items-center justify-between flex-shrink-0">
-                <div>
-                    <button 
-                        onClick={() => setViewMode('edit')} 
-                        className={`px-3 py-1 text-sm rounded-l-md focus:outline-none ${
-                            viewMode === 'edit' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'
-                        }`}
-                    >
-                        Edit
-                    </button>
-                    <button 
-                        onClick={() => setViewMode('preview')} 
-                        className={`px-3 py-1 text-sm rounded-r-md focus:outline-none ${
-                            viewMode === 'preview' ? 'bg-blue-600 text-white' : 'bg-gray-700 hover:bg-gray-600'
-                        }`}
-                    >
-                        Preview
-                    </button>
+            {/* View mode toggle buttons removed */}
+            
+            <div className="flex flex-row flex-grow mt-2 space-x-2 h-[calc(100%-theme(space.12))] overflow-hidden"> {/* Parent for split view, ensures it uses remaining height */}
+                {/* Left Pane: Editor */}
+                <div className="w-1/2 h-full flex flex-col">
+                    <textarea
+                        value={noteContent}
+                        onChange={handleContentChange}
+                        placeholder="Start typing your note here... (Markdown supported)"
+                        className="w-full h-full p-3 bg-gray-800 border border-gray-700 rounded-md resize-none focus:outline-none text-base leading-relaxed font-mono scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 hover:scrollbar-thumb-gray-500"
+                    />
                 </div>
-            </div>
-
-            {viewMode === 'edit' ? (
-                <textarea
-                    value={noteContent}
-                    onChange={handleContentChange}
-                    placeholder="Start typing your note here... (Markdown supported)"
-                    className="w-full flex-grow p-3 bg-gray-800 border border-gray-700 rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 text-base leading-relaxed font-mono"
-                />
-            ) : (
-                <div className="w-full flex-grow p-3 bg-gray-800 border border-gray-700 rounded-md overflow-y-auto prose prose-sm prose-invert max-w-none">
+                {/* Right Pane: Preview */}
+                <div className="w-1/2 h-full overflow-y-auto p-3 bg-gray-800 border border-gray-700 rounded-md prose prose-sm prose-invert max-w-none scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 hover:scrollbar-thumb-gray-500">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {noteContent} 
                     </ReactMarkdown>
                 </div>
-            )}
+            </div>
         </div>
     )
 };
