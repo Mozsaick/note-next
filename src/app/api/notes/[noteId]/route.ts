@@ -11,7 +11,7 @@ interface RouteParams {
 /**
  * 特定のノートを取得 (GET /api/notes/[noteId])
  */
-export async function GET({ params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const resolvedParams = await params;
     const { noteId } = resolvedParams;
@@ -96,7 +96,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 /**
  * 特定のノートを削除 (DELETE /api/notes/[noteId])
  */
-export async function DELETE({ params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const resolvedParams = await params;
     const { noteId } = resolvedParams;

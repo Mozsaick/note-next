@@ -5,7 +5,7 @@ import type { NotePostBody } from '../../../types';
 /**
  * ノート一覧を取得 (GET /api/notes)
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const { data, error, status } = await supabase
       .from('notes')
