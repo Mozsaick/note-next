@@ -5,9 +5,9 @@ import type { FolderPostBody } from '../../../../types';
 /**
  * 特定のフォルダを取得 (GET /api/folders/[folderId])
  */
-export async function GET(request: NextRequest, { params }: { params: { folderId: string } }) {
+export async function GET(request: NextRequest, context: { params: { folderId: string } }) {
   try {
-    const { folderId } = params;
+    const { folderId } = context.params;
 
     if (!folderId) {
       return NextResponse.json({ error: 'Folder ID is required' }, { status: 400 });
@@ -40,9 +40,9 @@ export async function GET(request: NextRequest, { params }: { params: { folderId
  * 特定のフォルダを更新 (PUT /api/folders/[folderId])
  * 主に名前の変更を想定
  */
-export async function PUT(request: NextRequest, { params }: { params: { folderId: string } }) {
+export async function PUT(request: NextRequest, context: { params: { folderId: string } }) {
     try {
-      const { folderId } = params;
+      const { folderId } = context.params;
   
       if (!folderId) {
         return NextResponse.json({ error: 'Folder ID is required' }, { status: 400 });
@@ -84,9 +84,9 @@ export async function PUT(request: NextRequest, { params }: { params: { folderId
   /**
    * 特定のフォルダを削除 (DELETE /api/folders/[folderId])
    */
-  export async function DELETE(request: NextRequest, { params }: { params: { folderId: string } }) {
+  export async function DELETE(request: NextRequest, context: { params: { folderId: string } }) {
     try {
-      const { folderId } = params;
+      const { folderId } = context.params;
   
       if (!folderId) {
         return NextResponse.json({ error: 'Folder ID is required' }, { status: 400 });
