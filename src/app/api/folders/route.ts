@@ -5,7 +5,7 @@ import { FolderPostBody } from '../../../types';
 /**
  * 全フォルダ一覧を取得 (GET /api/folders)
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { data, error, status } = await supabase
       .from('folders')

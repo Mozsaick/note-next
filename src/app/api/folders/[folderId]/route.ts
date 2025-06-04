@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../../../../libs/supabase';
-import type { Folder, FolderPostBody } from '../../../../types';
+import type { FolderPostBody } from '../../../../types';
 
 interface RouteParams {
   params: {
@@ -11,7 +11,7 @@ interface RouteParams {
 /**
  * 特定のフォルダを取得 (GET /api/folders/[folderId])
  */
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET({ params }: RouteParams) {
   try {
     const { folderId } = params;
 
@@ -90,7 +90,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   /**
    * 特定のフォルダを削除 (DELETE /api/folders/[folderId])
    */
-  export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  export async function DELETE({ params }: RouteParams) {
     try {
       const { folderId } = params;
   

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../../../libs/supabase';
-import type { Note, NotePostBody } from '../../../types';
+import type { NotePostBody } from '../../../types';
 
 /**
  * ノート一覧を取得 (GET /api/notes)
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { data, error, status } = await supabase
       .from('notes')
