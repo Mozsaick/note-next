@@ -16,6 +16,7 @@ interface FolderSidebarProps {
     onSelectNote: (noteId: string, folderId: string) => void;
     onUpdateNote: (folderId: string, title: string, content: string) => void;
     onDeleteNote: (noteId: string) => void;
+    isSidebarOpen: boolean;
 }
 
 const FolderSidebar: React.FC<FolderSidebarProps> = ({ 
@@ -28,7 +29,8 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
     onDeleteFolder,
     onSelectNote,
     onUpdateNote,
-    onDeleteNote
+    onDeleteNote,
+    isSidebarOpen
 }) => {
     const [isCreating, setIsCreating] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
@@ -47,7 +49,7 @@ const FolderSidebar: React.FC<FolderSidebarProps> = ({
     };
 
     return (
-        <div className="w-64 p-4 bg-gray-800 text-white rounded-lg shadow-lg h-full overflow-y-auto">
+        <div className={`w-full p-4 bg-gray-800 text-white rounded-lg shadow-lg h-full overflow-y-auto transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold">Folders</h2>
                 <button

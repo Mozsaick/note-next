@@ -123,7 +123,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
             return;
         }
         try {
-            await onCreateNote(folder.id, newNoteTitle.trim(), '');
+            onCreateNote(folder.id, newNoteTitle.trim(), '');
             setNewNoteTitle('');
             setIsCreatingNote(false);
         } catch (error) {
@@ -169,14 +169,14 @@ const FolderItem: React.FC<FolderItemProps> = ({
                     ) : null}
                     {!isRenamingFolder && !isCreatingNote &&
                         <button onClick={handleStartCreateNewNote}
-                            className="p-0.5 rounded opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-gray-600"
+                            className="p-0.5 rounded md:focus:opacity-100 md:hover:bg-gray-600"
                             title="New Note in this folder">
                             <Plus className="w-4 h-4" />
                         </button>
                     }
                     {!isRenamingFolder && !isCreatingNote &&
                         <button onClick={(e) => { e.stopPropagation(); setShowFolderContextMenu(!showFolderContextMenu); }}
-                            className="p-0.5 rounded opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-gray-600"
+                            className="p-0.5 rounded md:focus:opacity-100 md:hover:bg-gray-600"
                             title="Folder options">
                             <MoreHorizontal className="w-4 h-4" />
                         </button>

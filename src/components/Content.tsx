@@ -96,7 +96,7 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
 
     if (!note) {
         return (
-            <div className="flex items-center justify-center h-full p-4 bg-gray-850 text-white">
+            <div className="flex items-center justify-center h-full p-4 pt-0 bg-gray-850 text-white">
                 <p className="text-gray-500 text-lg">Select a note to view or edit.</p>
             </div>
         );
@@ -104,7 +104,7 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
     
     if (isLoading && !noteTitle && !noteContent) {
          return (
-            <div className="flex flex-col items-center justify-center h-full p-4 bg-gray-850 text-white">
+            <div className="flex flex-col items-center justify-center h-full p-4 pt-0 bg-gray-850 text-white">
                 <LoadingSpinner size={32} />
                 <p className="text-gray-500 text-lg mt-4">Loading note...</p>
             </div>
@@ -112,7 +112,7 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
     }
 
     return (
-        <div className="flex flex-col h-full p-4 bg-gray-850 text-white">
+        <div className="flex flex-col h-full p-4 pt-0 bg-gray-850 text-white">
             <input 
                 type="text"
                 value={noteTitle}
@@ -133,7 +133,7 @@ const Content: React.FC<ContentProps> = ({ note, onUpdateNote }) => {
                     />
                 </div>
                 {/* Right Pane: Preview */}
-                <div className="w-1/2 h-full overflow-y-auto p-3 bg-gray-800 border border-gray-700 rounded-md prose prose-sm prose-invert max-w-none scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 hover:scrollbar-thumb-gray-500">
+                <div className="w-1/2 h-full overflow-y-auto overflow-x-hidden p-3 bg-gray-800 border border-gray-700 rounded-md prose prose-sm prose-invert max-w-none scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 hover:scrollbar-thumb-gray-500">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {noteContent} 
                     </ReactMarkdown>

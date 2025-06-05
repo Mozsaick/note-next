@@ -56,10 +56,10 @@ const NoteItem: React.FC<NoteItemProps> = ({
             setIsRenaming(false);
             return;
         }
-        onUpdateNote(note.id, newTitle, note.content || '');
         setIsRenaming(false);
         setShowContextMenu(false);
         setNewTitle(newTitle);
+        onUpdateNote(note.id, newTitle, note.content || '');
     };
 
     const handleRenameKeyDown = (e: React.KeyboardEvent) => {
@@ -116,7 +116,7 @@ const NoteItem: React.FC<NoteItemProps> = ({
                 {!isRenaming && (
                     <button 
                         onClick={toggleContextMenu}
-                        className="p-0.5 rounded opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-gray-500 flex-shrink-0"
+                        className="p-0.5 rounded focus:opacity-100 hover:bg-gray-500 flex-shrink-0"
                         title="Note options">
                         <MoreHorizontal className="w-3 h-3" />
                     </button>
